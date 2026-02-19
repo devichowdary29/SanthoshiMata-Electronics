@@ -1,21 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
-import { signOut } from '@/lib/auth';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function AdminHeader() {
-    const [email, setEmail] = useState('');
+    const { user, signOut } = useAuth();
     const router = useRouter();
-
-    useEffect(() => {
-        async function getUser() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) setEmail(user.email || '');
-        }
-        getUser();
-    }, []);
 
     async function handleLogout() {
         await signOut();
@@ -23,9 +13,9 @@ export default function AdminHeader() {
     }
 
     return (
-        <header className="h-14 bg-[#0f0f23] border-b border-white/10 flex items-center justify-between px-6 lg:pl-64">
+        <header className="h-14 bg-[#0f0f23] border-b border-white/10 flex items-center justify-between pl-16 pr-6 lg:px-6 lg:pl-64">
             <div className="text-gray-400 text-sm">
-                Welcome, <span className="text-white font-medium">{email || 'Admin'}</span>
+                Welcome, <span className="text-white font-medium">{user?.email || 'Admin'}</span>
             </div>
             <button
                 onClick={handleLogout}

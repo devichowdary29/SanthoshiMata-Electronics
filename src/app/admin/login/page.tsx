@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn } from '@/lib/auth';
+import { useAuth } from '@/lib/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 export default function AdminLoginPage() {
     const [email, setEmail] = useState('');
@@ -10,21 +11,44 @@ export default function AdminLoginPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const router = useRouter();
+    const { signIn, signOut } = useAuth();
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setLoading(true);
         setError('');
 
-        const { error: authError } = await signIn(email, password);
+        try {
+            const { error: authError } = await signIn(email, password);
 
-        if (authError) {
-            setError(authError.message || 'Invalid credentials');
+            if (authError) {
+                setError(authError || 'Invalid credentials');
+                setLoading(false);
+                return;
+            }
+
+            // Check role immediately
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: profile } = await supabase
+                    .from('user_profiles')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profile?.role !== 'admin') {
+                    await signOut();
+                    setError('Access denied. Admin privileges required.');
+                    setLoading(false);
+                    return;
+                }
+
+                router.replace('/admin');
+            }
+        } catch (err) {
+            setError('An error occurred during login');
             setLoading(false);
-            return;
         }
-
-        router.replace('/admin');
     }
 
     return (
@@ -32,13 +56,16 @@ export default function AdminLoginPage() {
             <div className="w-full max-w-md">
                 {/* Logo */}
                 <div className="text-center mb-8">
-                    <div className="w-14 h-14 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-cyan-500/20">
+                    {/* <div className="w-14 h-14 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-cyan-500/20">
                         <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                    </div>
-                    <h1 className="text-2xl font-bold text-white">Admin Login</h1>
+                    </div> */}
+                    <img src="/logo.png" alt="SanthoshiMata Electronics Logo" className="w-20 h-20 object-contain mx-auto mb-4" />
+                    <h1 className="text-2xl font-bold">
+                        <span className="text-white">SanthoshiMata</span> <span className="text-blue-500">Electronics</span>
+                    </h1>
                     <p className="text-gray-400 text-sm mt-1">SanthoshiMata Electronics Dashboard</p>
                 </div>
 

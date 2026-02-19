@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 
 function LoginForm() {
     const [isLogin, setIsLogin] = useState(true);
@@ -27,7 +28,18 @@ function LoginForm() {
             if (isLogin) {
                 const { error } = await signIn(email, password);
                 if (error) throw new Error(error);
-                router.push(redirectTo);
+
+                // Check if user is admin
+                const title = await supabase.from('user_profiles')
+                    .select('role')
+                    .eq('email', email)
+                    .single();
+
+                if (title.data?.role === 'admin') {
+                    router.push('/admin');
+                } else {
+                    router.push(redirectTo);
+                }
             } else {
                 const { error } = await signUp(email, password, fullName);
                 if (error) throw new Error(error);

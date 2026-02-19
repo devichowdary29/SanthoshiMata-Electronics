@@ -1,14 +1,44 @@
 import HeroBanner from '@/components/HeroBanner';
-import BrandHighlights from '@/components/BrandHighlights';
-import FeaturedProducts from '@/components/FeaturedProducts';
-import ReviewsSection from '@/components/ReviewsSection';
+import BrandShowcase from '@/components/BrandShowcase';
+import CategoryExplorer from '@/components/CategoryExplorer';
+import dynamic from 'next/dynamic';
 
-export default function Home() {
+const FeaturedProducts = dynamic(() => import('@/components/FeaturedProducts'), {
+  loading: () => <div className="h-[500px] flex items-center justify-center text-white/20">Loading Featured Products...</div>,
+  ssr: true // Keep SSR for SEO, but load JS chunk lazily
+});
+
+const ReviewsSection = dynamic(() => import('@/components/ReviewsSection'), {
+  ssr: true
+});
+
+import { supabase } from '@/lib/supabase';
+
+// Helper to fetch data on server
+async function getFeaturedProducts() {
+  try {
+    const { data } = await supabase
+      .from('products')
+      .select('*')
+      .eq('is_archived', false)
+      .order('created_at', { ascending: false })
+      .limit(4);
+    return data || [];
+  } catch (e) {
+    console.error('Error fetching featured products:', e);
+    return [];
+  }
+}
+
+export default async function Home() {
+  const featuredProducts = await getFeaturedProducts();
+
   return (
     <>
       <HeroBanner />
-      <BrandHighlights />
-      <FeaturedProducts />
+      <BrandShowcase />
+      <CategoryExplorer />
+      <FeaturedProducts initialProducts={featuredProducts} />
       <ReviewsSection />
 
       {/* Trust Section */}

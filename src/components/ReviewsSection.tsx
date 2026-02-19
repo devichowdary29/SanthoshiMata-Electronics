@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Review } from '@/lib/types';
+import { Quote } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 function StarRating({ rating }: { rating: number }) {
     return (
@@ -10,11 +13,12 @@ function StarRating({ rating }: { rating: number }) {
             {[1, 2, 3, 4, 5].map((star) => (
                 <svg
                     key={star}
-                    className={`w-4 h-4 ${star <= rating ? 'text-amber-400' : 'text-gray-600'}`}
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
+                    className={`w-4 h-4 ${star <= rating ? 'text-amber-400 fill-amber-400' : 'text-gray-600'}`}
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="1"
                 >
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.563.044.8.77.388 1.192l-4.204 4.347a.562.562 0 00-.15.483l1.29 5.865c.13.593-.509 1.056-.997.747l-4.747-2.982a.563.563 0 00-.582 0l-4.748 2.982c-.488.31-1.127-.154-.997-.748l1.29-5.865a.563.563 0 00-.15-.483l-4.204-4.347c-.413-.422-.175-1.148.388-1.192l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
                 </svg>
             ))}
         </div>
@@ -30,7 +34,7 @@ export default function ReviewsSection() {
                 .from('reviews')
                 .select('*')
                 .order('created_at', { ascending: false })
-                .limit(6);
+                .limit(3);
             if (data) setReviews(data);
         }
         fetchReviews();
@@ -39,31 +43,61 @@ export default function ReviewsSection() {
     if (reviews.length === 0) return null;
 
     return (
-        <section className="py-16 bg-[#1a1a2e]">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center mb-10">
-                    <h2 className="text-3xl md:text-4xl font-bold text-white">Customer Reviews</h2>
-                    <p className="text-gray-400 mt-2">What our happy customers say about us</p>
+        <section className="py-24 bg-[#1a1a2e] relative overflow-hidden">
+            {/* Background Decorations */}
+            <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" />
+            <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2" />
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                <div className="text-center mb-16">
+                    <motion.h2
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="text-3xl md:text-5xl font-bold text-white tracking-tight"
+                    >
+                        What Our Customers <span className="text-cyan-400">Say</span>
+                    </motion.h2>
+                    <motion.p
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: 0.1 }}
+                        className="text-gray-400 mt-4 text-lg"
+                    >
+                        Real experiences from our valued clients
+                    </motion.p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {reviews.map((review) => (
-                        <div
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {reviews.map((review, i) => (
+                        <motion.div
                             key={review.id}
-                            className="bg-[#1e2a4a]/60 rounded-xl border border-white/10 p-6 hover:border-cyan-500/20 transition-all"
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: i * 0.1 }}
+                            whileHover={{ y: -5 }}
+                            className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-8 hover:border-cyan-500/30 transition-all shadow-lg hover:shadow-cyan-500/10 relative group"
                         >
-                            <div className="flex items-center gap-3 mb-4">
-                                {/* Avatar */}
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
-                                    {review.name.charAt(0).toUpperCase()}
-                                </div>
+                            <Quote className="absolute top-6 right-6 w-8 h-8 text-white/10 group-hover:text-cyan-500/20 transition-colors" />
+
+                            <div className="flex items-center gap-4 mb-6">
+                                <Avatar className="w-12 h-12 border-2 border-cyan-500/20">
+                                    <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-blue-600 text-white font-bold">
+                                        {review.name.charAt(0).toUpperCase()}
+                                    </AvatarFallback>
+                                </Avatar>
                                 <div>
-                                    <p className="text-white font-medium text-sm">{review.name}</p>
+                                    <h3 className="text-white font-semibold text-lg">{review.name}</h3>
                                     <StarRating rating={review.rating} />
                                 </div>
                             </div>
-                            <p className="text-gray-300 text-sm leading-relaxed">{review.message}</p>
-                        </div>
+
+                            <p className="text-gray-300 leading-relaxed italic relative z-10">
+                                "{review.message}"
+                            </p>
+                        </motion.div>
                     ))}
                 </div>
             </div>

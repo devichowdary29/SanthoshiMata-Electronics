@@ -11,6 +11,7 @@ export interface Product {
     stock_status: 'available' | 'out_of_stock' | 'limited';
     image_url: string;
     created_at: string;
+    is_archived?: boolean;
 }
 
 export interface Enquiry {

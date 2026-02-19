@@ -1,13 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Banner } from '@/lib/types';
 import Link from 'next/link';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { ChevronRight } from 'lucide-react';
+
 
 export default function HeroBanner() {
     const [banners, setBanners] = useState<Banner[]>([]);
     const [current, setCurrent] = useState(0);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const { scrollY } = useScroll();
+    const y = useTransform(scrollY, [0, 500], [0, 150]); // Parallax effect
 
     useEffect(() => {
         async function fetchBanners() {
@@ -20,7 +27,6 @@ export default function HeroBanner() {
         }
         fetchBanners();
 
-        // Real-time subscription for instant updates
         const channel = supabase
             .channel('banners-realtime')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'banners' }, () => {
@@ -35,96 +41,128 @@ export default function HeroBanner() {
         if (banners.length <= 1) return;
         const interval = setInterval(() => {
             setCurrent((prev) => (prev + 1) % banners.length);
-        }, 5000);
+        }, 6000);
         return () => clearInterval(interval);
     }, [banners.length]);
 
-    if (banners.length === 0) {
-        return (
-            <section className="relative h-[500px] md:h-[600px] bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460] flex items-center overflow-hidden">
-                <div className="absolute inset-0 bg-[url('/images/hero-pattern.svg')] opacity-5"></div>
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-                    <h1 className="text-4xl md:text-6xl font-bold text-white leading-tight max-w-2xl">
-                        Experience <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Unmatched</span> Clarity
-                    </h1>
-                    <p className="text-gray-300 text-lg md:text-xl mt-4 max-w-lg">
-                        Shop the Latest OLED & QLED Models from Top Brands
-                    </p>
-                    <Link
-                        href="/products"
-                        className="inline-block mt-8 bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-8 py-3.5 rounded-lg text-base font-semibold hover:from-cyan-400 hover:to-blue-500 transition-all shadow-xl shadow-cyan-500/30 hover:shadow-cyan-500/50 hover:-translate-y-0.5"
-                    >
-                        SHOP NOW
-                    </Link>
-                </div>
-                {/* Decorative TV Image */}
-                <div className="hidden lg:block absolute right-0 top-1/2 -translate-y-1/2 w-[500px] h-[350px]">
-                    <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-white/10 flex items-center justify-center shadow-2xl">
-                        <div className="w-[90%] h-[85%] bg-gradient-to-br from-purple-600 via-blue-500 to-cyan-400 rounded-lg animate-pulse"></div>
-                    </div>
-                    <div className="w-32 h-3 bg-gray-700 rounded-full mx-auto mt-2"></div>
-                </div>
-            </section>
-        );
-    }
+    // Default content if no banners
+    const defaultBanner = {
+        id: 'default',
+        title: 'Experience Unmatched Clarity',
+        subtitle: 'Shop the Latest OLED & QLED Models from Top Brands',
+        image_url: null,
+        active: true,
+        created_at: new Date().toISOString()
+    };
 
-    const banner = banners[current];
+    const activeBanner = banners.length > 0 ? banners[current] : defaultBanner;
 
     return (
-        <section className="relative h-[500px] md:h-[600px] flex items-center overflow-hidden">
-            {/* Banner Background Image */}
-            {banner.image_url && banner.image_url.startsWith('http') ? (
-                <img
-                    src={banner.image_url}
-                    alt={banner.title || 'Banner'}
-                    className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
-                    key={banner.id}
-                />
-            ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460]"></div>
-            )}
-
-            {/* Dark overlay for text readability */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30 z-10"></div>
-
-            {/* Animated background shapes */}
-            <div className="absolute inset-0 overflow-hidden z-[5]">
-                <div className="absolute -top-40 -right-40 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl"></div>
-                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl"></div>
-            </div>
-
-            {/* Content */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20 w-full">
-                <div className="max-w-2xl">
-                    <h1 className="text-4xl md:text-6xl font-bold text-white leading-tight transition-all duration-500 drop-shadow-lg">
-                        {banner.title || 'Experience Unmatched Clarity'}
-                    </h1>
-                    <p className="text-gray-200 text-lg md:text-xl mt-4 transition-all duration-500 drop-shadow-md">
-                        {banner.subtitle || 'Shop the Latest OLED & QLED Models'}
-                    </p>
-                    <Link
-                        href="/products"
-                        className="inline-block mt-8 bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-8 py-3.5 rounded-lg text-base font-semibold hover:from-cyan-400 hover:to-blue-500 transition-all shadow-xl shadow-cyan-500/30 hover:shadow-cyan-500/50 hover:-translate-y-0.5"
+        <section ref={containerRef} className="relative min-h-[500px] md:min-h-[600px] h-auto md:h-[85vh] flex items-center overflow-hidden bg-[#0f0f23]">
+            {/* Background Parallax Layer */}
+            <motion.div style={{ y }} className="absolute inset-0 z-0">
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={activeBanner.id}
+                        initial={{ opacity: 0, scale: 1.1 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 1.5 }}
+                        className="absolute inset-0"
                     >
-                        SHOP NOW
-                    </Link>
-                </div>
+                        {activeBanner.image_url ? (
+                            <img
+                                src={activeBanner.image_url}
+                                alt={activeBanner.title}
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <div className="w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1a1a2e] via-[#0f0f23] to-black">
+                                <div className="absolute inset-0 bg-[url('/images/hero-pattern.svg')] opacity-5 mix-blend-overlay" />
+                            </div>
+                        )}
+                        {/* Gradient Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#0f0f23]/90 via-[#0f0f23]/60 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f23] via-transparent to-transparent" />
+                    </motion.div>
+                </AnimatePresence>
+            </motion.div>
+
+            {/* Content Layer */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
+                <AnimatePresence mode="wait">
+                    <div key={activeBanner.id} className="max-w-3xl">
+                        <motion.div
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.8, delay: 0.2 }}
+                        >
+                            <span className="inline-block py-1 px-3 rounded-full bg-cyan-500/10 text-cyan-400 text-sm font-semibold tracking-wider mb-6 border border-cyan-500/20 backdrop-blur-sm">
+                                NEW ARRIVALS
+                            </span>
+                            <h1 className="text-3xl md:text-5xl lg:text-7xl font-bold text-white leading-tight mb-6 tracking-tight">
+                                {activeBanner.title.split(' ').map((word, i) => (
+                                    <span key={i} className="inline-block mr-4">
+                                        {word === 'Unmatched' || word === 'Clarity' ? (
+                                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">{word}</span>
+                                        ) : (
+                                            word
+                                        )}
+                                    </span>
+                                ))}
+                            </h1>
+                        </motion.div>
+
+                        <motion.p
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.8, delay: 0.4 }}
+                            className="text-gray-300 text-lg md:text-xl mb-10 max-w-xl leading-relaxed"
+                        >
+                            {activeBanner.subtitle}
+                        </motion.p>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.8, delay: 0.6 }}
+                            className="flex flex-wrap gap-4"
+                        >
+                            <Link href="/products">
+                                <Button size="lg" className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white border-0 h-14 px-8 text-lg rounded-full shadow-lg shadow-cyan-500/25 transition-all hover:scale-105 group">
+                                    Shop Now
+                                    <ChevronRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                </Button>
+                            </Link>
+                            <Link href="/services">
+                                <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 h-14 px-8 text-lg rounded-full backdrop-blur-sm transition-all hover:scale-105">
+                                    Book Service
+                                </Button>
+                            </Link>
+                        </motion.div>
+                    </div>
+                </AnimatePresence>
             </div>
 
-            {/* Banner Dots */}
+            {/* Slide Indicators */}
             {banners.length > 1 && (
-                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+                <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex gap-3 z-20">
                     {banners.map((_, i) => (
                         <button
                             key={i}
                             onClick={() => setCurrent(i)}
-                            className={`w-2.5 h-2.5 rounded-full transition-all ${i === current ? 'bg-cyan-400 w-8' : 'bg-white/30 hover:bg-white/50'
+                            className={`h-1.5 rounded-full transition-all duration-500 ${i === current ? 'w-12 bg-cyan-400' : 'w-2 bg-white/20 hover:bg-white/40'
                                 }`}
-                            aria-label={`Go to banner ${i + 1}`}
+                            aria-label={`Go to slide ${i + 1}`}
                         />
                     ))}
                 </div>
             )}
+
+
         </section>
     );
 }

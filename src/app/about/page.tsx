@@ -1,158 +1,180 @@
-import type { Metadata } from 'next';
+'use client';
 
-export const metadata: Metadata = {
-    title: 'About Us | SanthoshiMata Electronics',
-    description: 'Learn about SanthoshiMata Electronics — your trusted electronics destination in Hyderabad for over 15 years. Authorized dealer for top TV brands.',
-};
+import { motion } from 'framer-motion';
+import { Award, ShieldCheck, Truck, Users, CheckCircle2 } from 'lucide-react';
 
-const authorizedBrands = ['Sony', 'Samsung', 'LG', 'Mi / Xiaomi', 'OnePlus', 'TCL', 'Speedcon'];
+const authorizedBrands = ['Sony', 'Samsung', 'LG', 'Mi', 'OnePlus', 'TCL', 'Speedcon'];
 
 export default function AboutPage() {
-    return (
-        <div className="min-h-screen bg-[#0f0f23]">
-            {/* Header */}
-            <div className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] py-12 border-b border-white/10">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <h1 className="text-3xl md:text-4xl font-bold text-white">About Us</h1>
-                    <p className="text-gray-400 mt-2">Trusted by thousands of families in Hyderabad</p>
-                </div>
-            </div>
+    const fadeIn = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0 }
+    };
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-                {/* Our Story */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-16">
-                    <div>
-                        <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">Our Story</h2>
-                        <div className="space-y-4 text-gray-300 text-sm leading-relaxed">
+    return (
+        <div className="min-h-screen bg-[#0f0f23] text-white selection:bg-cyan-500/30">
+            {/* Hero Section */}
+            <section className="relative py-24 overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-cyan-500/5 to-transparent pointer-events-none" />
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+                    <motion.h1
+                        initial="hidden"
+                        animate="visible"
+                        variants={fadeIn}
+                        transition={{ duration: 0.6 }}
+                        className="text-4xl md:text-6xl font-bold tracking-tight mb-6"
+                    >
+                        About <span className="text-cyan-400">Us</span>
+                    </motion.h1>
+                    <motion.p
+                        initial="hidden"
+                        animate="visible"
+                        variants={fadeIn}
+                        transition={{ duration: 0.6, delay: 0.2 }}
+                        className="text-gray-400 text-lg md:text-xl max-w-3xl mx-auto leading-relaxed"
+                    >
+                        Detailed craftsmanship, uncompromising quality, and a legacy of trust.
+                    </motion.p>
+                </div>
+            </section>
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
+                {/* Our Story & Stats */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center mb-24">
+                    <motion.div
+                        initial={{ opacity: 0, x: -30 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.8 }}
+                    >
+                        <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">Our Story</h2>
+                        <div className="space-y-6 text-gray-300 text-lg leading-relaxed">
                             <p>
-                                Founded over <span className="text-cyan-400 font-semibold">15 years ago</span>, SanthoshiMata Electronics has been the go-to destination for families in Hyderabad looking for quality electronics at the best prices.
+                                Founded over <span className="text-cyan-400 font-semibold">20+ years ago</span>, SanthoshiMata Electronics has proudly served families in Godavarikhani as a trusted destination for quality electronics at the best prices.
                             </p>
                             <p>
-                                What started as a small shop has grown into one of the most trusted electronics retailers in the region. We specialize in Smart TVs from the world&apos;s leading brands — Sony, Samsung, LG, Mi, OnePlus, and TCL.
+                                What started as a small neighborhood shop has grown into one of the most reliable and respected electronics retailers in the region. Our growth has been built on customer trust, consistent service, and a commitment to delivering the latest technology to every home.
                             </p>
                             <p>
-                                Our knowledgeable team helps every customer find the perfect TV for their needs and budget. We believe in building lasting relationships through honest advice, competitive pricing, and exceptional after-sales service.
+                                We specialize in Smart TVs from the world’s leading brands, including Sony, Samsung, LG, Mi, OnePlus, TCL, and Speedcon. From premium home theatre experiences to budget-friendly smart entertainment solutions, we offer a wide range of options to suit every lifestyle and need.
+                            </p>
+                            <p>
+                                At SanthoshiMata Electronics, we believe buying a TV is more than just a transaction — it’s about enhancing your family’s entertainment experience. Our knowledgeable team ensures every customer receives honest guidance and the right product at the right value.
+                            </p>
+                            <p className="font-medium text-white">
+                                For more than two decades, our mission has remained simple — to provide quality, affordability, and trust to every customer who chooses us.
                             </p>
                         </div>
-                    </div>
-                    <div className="bg-gradient-to-br from-[#1e2a4a]/80 to-[#16213e]/80 rounded-2xl border border-white/10 flex items-center justify-center p-8 min-h-[300px]">
-                        <div className="text-center">
-                            <div className="text-6xl md:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-2">15+</div>
-                            <p className="text-gray-400 text-lg">Years of Trust</p>
+                    </motion.div>
+
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.8 }}
+                        className="relative"
+                    >
+                        <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 blur-3xl rounded-full" />
+                        <div className="relative bg-[#1e2a4a]/40 backdrop-blur-sm rounded-3xl border border-white/10 p-12 text-center overflow-hidden group hover:border-cyan-500/30 transition-colors">
+                            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                                <Award className="w-48 h-48 text-cyan-400" />
+                            </div>
+
+                            <div className="relative z-10">
+                                <div className="text-8xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500 mb-4">
+                                    20+
+                                </div>
+                                <div className="text-2xl font-semibold text-white mb-2">Years of Trust</div>
+                                <p className="text-gray-400">Serving Godavarikhani with pride</p>
+                            </div>
                         </div>
-                    </div>
+                    </motion.div>
                 </div>
 
                 {/* Why Choose Us */}
-                <div className="mb-16">
-                    <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center">Why Choose SanthoshiMata?</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div className="mb-24">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6 }}
+                        className="text-center mb-12"
+                    >
+                        <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Why Choose SanthoshiMata?</h2>
+                        <p className="text-gray-400 max-w-2xl mx-auto">We don't just sell TVs; we sell an experience backed by guarantees and expert support.</p>
+                    </motion.div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {[
                             {
-                                icon: (
-                                    <svg className="w-7 h-7 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                                    </svg>
-                                ),
-                                title: '100% Genuine Products',
-                                desc: 'All products come with manufacturer warranty and original bill',
+                                icon: <ShieldCheck className="w-8 h-8 text-emerald-400" />,
+                                title: '100% Genuine',
+                                desc: 'Authorized dealer with manufacturer warranty on all products.',
+                                color: 'emerald'
                             },
                             {
-                                icon: (
-                                    <svg className="w-7 h-7 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                ),
-                                title: 'Best Price Guarantee',
-                                desc: 'Competitive pricing — we match any authorized dealer price',
+                                icon: <Award className="w-8 h-8 text-amber-400" />,
+                                title: 'Best Prices',
+                                desc: 'Competitive pricing matched with the best value in the market.',
+                                color: 'amber'
                             },
                             {
-                                icon: (
-                                    <svg className="w-7 h-7 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                    </svg>
-                                ),
-                                title: 'Same Day Delivery',
-                                desc: 'Free delivery and professional installation in Hyderabad',
+                                icon: <Truck className="w-8 h-8 text-blue-400" />,
+                                title: 'Fast Delivery',
+                                desc: 'Quick and safe delivery to your doorstep in Godavarikhani.',
+                                color: 'blue'
                             },
                             {
-                                icon: (
-                                    <svg className="w-7 h-7 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                    </svg>
-                                ),
-                                title: 'Expert Guidance',
-                                desc: 'Knowledgeable staff to help you choose the perfect TV',
+                                icon: <Users className="w-8 h-8 text-purple-400" />,
+                                title: 'Expert Support',
+                                desc: 'Our team guides you to choose the perfect TV for your home.',
+                                color: 'purple'
                             },
                         ].map((item, i) => (
-                            <div key={i} className="bg-[#1e2a4a]/60 rounded-xl border border-white/10 p-6 hover:border-cyan-500/20 transition-all text-center">
-                                <div className="w-14 h-14 bg-cyan-500/10 rounded-xl flex items-center justify-center mx-auto mb-4 border border-cyan-500/20">
+                            <motion.div
+                                key={i}
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.5, delay: i * 0.1 }}
+                                className="bg-[#1e2a4a]/40 backdrop-blur-sm rounded-2xl border border-white/10 p-6 hover:bg-[#1e2a4a]/60 hover:border-cyan-500/30 transition-all group"
+                            >
+                                <div className={`w-14 h-14 bg-${item.color}-500/10 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
                                     {item.icon}
                                 </div>
-                                <h3 className="text-white font-semibold mb-2">{item.title}</h3>
-                                <p className="text-gray-400 text-sm">{item.desc}</p>
-                            </div>
+                                <h3 className="text-xl font-bold text-white mb-3">{item.title}</h3>
+                                <p className="text-gray-400 leading-relaxed text-sm">{item.desc}</p>
+                            </motion.div>
                         ))}
                     </div>
                 </div>
 
-                {/* Authorized Brands */}
-                <div className="mb-16">
-                    <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center">Authorized Dealer For</h2>
-                    <div className="flex flex-wrap items-center justify-center gap-5">
-                        {authorizedBrands.map((brand) => (
-                            <div
+                {/* Brands Grid */}
+                <div>
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6 }}
+                        className="text-center mb-12"
+                    >
+                        <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">Authorized Partners</h2>
+                    </motion.div>
+
+                    <div className="flex flex-wrap justify-center gap-4 md:gap-6">
+                        {authorizedBrands.map((brand, i) => (
+                            <motion.div
                                 key={brand}
-                                className="px-8 py-4 bg-[#1e2a4a]/60 rounded-xl border border-white/10 hover:border-cyan-500/30 transition-all"
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                whileInView={{ opacity: 1, scale: 1 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.4, delay: i * 0.05 }}
+                                className="px-8 py-4 bg-white/5 rounded-full border border-white/10 flex items-center gap-3 hover:bg-white/10 hover:border-cyan-500/50 transition-all group cursor-default"
                             >
-                                <span className="text-xl font-bold text-gray-300">{brand}</span>
-                            </div>
+                                <CheckCircle2 className="w-5 h-5 text-cyan-500 group-hover:text-cyan-400" />
+                                <span className="text-lg font-semibold text-gray-200 group-hover:text-white">{brand}</span>
+                            </motion.div>
                         ))}
-                    </div>
-                </div>
-
-                {/* Policies */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    <div className="bg-[#1e2a4a]/60 rounded-xl border border-white/10 p-6">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center">
-                                <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                                </svg>
-                            </div>
-                            <h3 className="text-white font-semibold">Warranty</h3>
-                        </div>
-                        <p className="text-gray-400 text-sm leading-relaxed">
-                            All products carry full manufacturer warranty. We assist with warranty claims and service requests to ensure a hassle-free experience.
-                        </p>
-                    </div>
-
-                    <div className="bg-[#1e2a4a]/60 rounded-xl border border-white/10 p-6">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 bg-amber-500/10 rounded-lg flex items-center justify-center">
-                                <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                            </div>
-                            <h3 className="text-white font-semibold">Return Policy</h3>
-                        </div>
-                        <p className="text-gray-400 text-sm leading-relaxed">
-                            If you receive a damaged or defective product, we offer a replacement within 7 days of purchase. Terms and conditions apply.
-                        </p>
-                    </div>
-
-                    <div className="bg-[#1e2a4a]/60 rounded-xl border border-white/10 p-6">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
-                                <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                </svg>
-                            </div>
-                            <h3 className="text-white font-semibold">Privacy Policy</h3>
-                        </div>
-                        <p className="text-gray-400 text-sm leading-relaxed">
-                            Your personal information is safe with us. We collect data only for enquiry purposes and never share it with third parties.
-                        </p>
                     </div>
                 </div>
             </div>

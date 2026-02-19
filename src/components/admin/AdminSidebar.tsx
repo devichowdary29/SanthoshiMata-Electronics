@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const navItems = [
     {
@@ -63,16 +64,29 @@ const navItems = [
     },
 ];
 
-export default function AdminSidebar() {
+interface AdminSidebarProps {
+    collapsed: boolean;
+    setCollapsed: (collapsed: boolean) => void;
+}
+
+export default function AdminSidebar({ collapsed, setCollapsed }: AdminSidebarProps) {
     const pathname = usePathname();
-    const [collapsed, setCollapsed] = useState(false);
+    const [mobileOpen, setMobileOpen] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 1024);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     return (
         <>
-            {/* Mobile overlay */}
+            {/* Mobile overlay toggle */}
             <button
-                onClick={() => setCollapsed(!collapsed)}
-                className="lg:hidden fixed top-20 left-4 z-50 bg-[#1e2a4a] border border-white/10 rounded-lg p-2 text-gray-400 hover:text-white"
+                onClick={() => setMobileOpen(!mobileOpen)}
+                className="lg:hidden fixed top-3 left-4 z-50 bg-[#1e2a4a] border border-white/10 rounded-lg p-2 text-gray-400 hover:text-white"
             >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -80,62 +94,113 @@ export default function AdminSidebar() {
             </button>
 
             {/* Sidebar */}
-            <aside className={`fixed top-16 left-0 bottom-0 w-60 bg-[#0f0f23] border-r border-white/10 z-40 transform transition-transform duration-200 ${collapsed ? '-translate-x-full' : 'translate-x-0'} lg:translate-x-0`}>
-                <div className="flex flex-col h-full">
-                    {/* Logo area */}
-                    <div className="p-5 border-b border-white/10">
-                        <Link href="/admin" className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-lg flex items-center justify-center">
-                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                            </div>
-                            <span className="text-white font-semibold text-sm">Admin Panel</span>
-                        </Link>
-                    </div>
-
-                    {/* Navigation */}
-                    <nav className="flex-1 p-3 space-y-1">
-                        {navItems.map((item) => {
-                            const isActive = pathname === item.href;
-                            return (
-                                <Link
-                                    key={item.href}
-                                    href={item.href}
-                                    onClick={() => setCollapsed(true)}
-                                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isActive
-                                        ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
-                                        : 'text-gray-400 hover:text-white hover:bg-white/5'
-                                        }`}
+            <motion.aside
+                initial={false}
+                animate={{
+                    width: isMobile ? 240 : (collapsed ? 80 : 240),
+                    x: isMobile ? (mobileOpen ? 0 : -240) : 0
+                }}
+                transition={{ duration: 0.3, type: "spring", stiffness: 100, damping: 20 }}
+                className="fixed top-0 left-0 bottom-0 bg-[#0f0f23] border-r border-white/10 z-40 flex flex-col overflow-hidden"
+            >
+                {/* Logo area */}
+                <div className={`p-5 border-b border-white/10 flex items-center ${collapsed ? 'justify-center' : 'justify-between'}`}>
+                    <Link href="/admin" className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-lg flex items-center justify-center shrink-0">
+                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </div>
+                        <AnimatePresence>
+                            {!collapsed && (
+                                <motion.span
+                                    initial={{ opacity: 0, width: 0 }}
+                                    animate={{ opacity: 1, width: 'auto' }}
+                                    exit={{ opacity: 0, width: 0 }}
+                                    className="text-white font-semibold text-sm whitespace-nowrap overflow-hidden"
                                 >
-                                    {item.icon}
-                                    {item.label}
-                                </Link>
-                            );
-                        })}
-                    </nav>
+                                    Admin Panel
+                                </motion.span>
+                            )}
+                        </AnimatePresence>
+                    </Link>
 
-                    {/* Back to site */}
-                    <div className="p-3 border-t border-white/10">
-                        <Link
-                            href="/"
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 hover:text-gray-300 transition-colors"
-                        >
+                    {/* Desktop Collapse Toggle */}
+                    <button
+                        onClick={() => setCollapsed(!collapsed)}
+                        className="hidden lg:flex text-gray-500 hover:text-white transition-colors"
+                    >
+                        <svg className={`w-5 h-5 transition-transform ${collapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                        </svg>
+                    </button>
+                </div>
+
+                {/* Navigation */}
+                <nav className="flex-1 p-3 space-y-1 overflow-y-auto custom-scrollbar">
+                    {navItems.map((item) => {
+                        const isActive = pathname === item.href;
+                        return (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                onClick={() => isMobile && setMobileOpen(false)}
+                                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group whitespace-nowrap overflow-hidden ${isActive
+                                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
+                                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                    } ${collapsed ? 'justify-center' : ''}`}
+                                title={collapsed ? item.label : ''}
+                            >
+                                <span className="shrink-0">{item.icon}</span>
+                                <AnimatePresence>
+                                    {!collapsed && (
+                                        <motion.span
+                                            initial={{ opacity: 0, width: 0 }}
+                                            animate={{ opacity: 1, width: 'auto' }}
+                                            exit={{ opacity: 0, width: 0 }}
+                                        >
+                                            {item.label}
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
+                            </Link>
+                        );
+                    })}
+                </nav>
+
+                {/* Back to site */}
+                <div className="p-3 border-t border-white/10">
+                    <Link
+                        href="/"
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 hover:text-gray-300 transition-colors whitespace-nowrap overflow-hidden ${collapsed ? 'justify-center' : ''}`}
+                        title="Back to Website"
+                    >
+                        <div className="shrink-0">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                             </svg>
-                            Back to Website
-                        </Link>
-                    </div>
+                        </div>
+                        <AnimatePresence>
+                            {!collapsed && (
+                                <motion.span
+                                    initial={{ opacity: 0, width: 0 }}
+                                    animate={{ opacity: 1, width: 'auto' }}
+                                    exit={{ opacity: 0, width: 0 }}
+                                >
+                                    Back to Website
+                                </motion.span>
+                            )}
+                        </AnimatePresence>
+                    </Link>
                 </div>
-            </aside>
+            </motion.aside>
 
             {/* Overlay for mobile */}
-            {!collapsed && (
+            {mobileOpen && (
                 <div
                     className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-                    onClick={() => setCollapsed(true)}
+                    onClick={() => setMobileOpen(false)}
                 ></div>
             )}
         </>

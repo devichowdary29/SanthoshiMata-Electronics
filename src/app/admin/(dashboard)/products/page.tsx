@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Product } from '@/lib/types';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const BRANDS = ['Sony', 'Samsung', 'LG', 'Mi', 'OnePlus', 'TCL', 'Speedcon'];
 const SCREEN_SIZES = ['32"', '43"', '50"', '55"', '65"', '75"'];
@@ -35,9 +36,32 @@ export default function AdminProductsPage() {
     useEffect(() => { fetchProducts(); }, []);
 
     async function fetchProducts() {
-        const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+        const { data } = await supabase
+            .from('products')
+            .select('*')
+            .eq('is_archived', false) // Only fetch active products
+            .order('created_at', { ascending: false });
         if (data) setProducts(data);
     }
+
+    useEffect(() => {
+        // Real-time subscription for admin panel
+        const channel = supabase
+            .channel('admin-products-realtime')
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'products'
+            }, (payload) => {
+                // If it's a direct stock update from THIS client, we might have handled it optimistically
+                // But generally safer to just re-fetch or merge
+                // For simplicity and correctness:
+                fetchProducts();
+            })
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+    }, []);
 
     function showToast(msg: string, type: 'success' | 'error' = 'success') {
         setToast({ msg, type });
@@ -103,11 +127,17 @@ export default function AdminProductsPage() {
 
             if (editing) {
                 const { error } = await supabase.from('products').update(payload).eq('id', editing.id);
-                if (error) throw error;
+                if (error) {
+                    console.error('Update error:', error);
+                    throw error;
+                }
                 showToast('Product updated successfully!');
             } else {
                 const { error } = await supabase.from('products').insert(payload);
-                if (error) throw error;
+                if (error) {
+                    console.error('Insert error:', error);
+                    throw error;
+                }
                 showToast('Product added successfully!');
             }
 
@@ -121,10 +151,34 @@ export default function AdminProductsPage() {
 
     async function handleDelete(id: string) {
         const productToDelete = products.find(p => p.id === id);
+
+        // Try hard delete first
         const { error } = await supabase.from('products').delete().eq('id', id);
+
         if (error) {
-            showToast('Failed to delete product', 'error');
+            console.error('Delete error:', error);
+
+            // Check for foreign key constraint violation (Postgres code 23503)
+            if (error.code === '23503') {
+                const confirmed = window.confirm('This product is part of existing orders and cannot be permanently deleted. Do you want to archive it instead?');
+                if (confirmed) {
+                    const { error: archiveError } = await supabase
+                        .from('products')
+                        .update({ is_archived: true })
+                        .eq('id', id);
+
+                    if (archiveError) {
+                        showToast(`Failed to archive product: ${archiveError.message}`, 'error');
+                    } else {
+                        showToast('Product archived successfully');
+                        fetchProducts();
+                    }
+                }
+            } else {
+                showToast(`Failed to delete product: ${error.message}`, 'error');
+            }
         } else {
+            console.log('Product deleted, now submitting storage delete for', productToDelete?.image_url);
             if (productToDelete?.image_url) {
                 await deleteFromStorage(productToDelete.image_url);
             }
@@ -134,13 +188,20 @@ export default function AdminProductsPage() {
         setDeleteId(null);
     }
 
-    async function quickStockUpdate(id: string, stock_status: string) {
-        const { error } = await supabase.from('products').update({ stock_status }).eq('id', id);
+    async function quickStockUpdate(id: string, newStatus: string) {
+        // Optimistic update
+        setProducts(prev => prev.map(p => p.id === id ? { ...p, stock_status: newStatus as Product['stock_status'] } : p));
+
+        console.log(`Updating stock for ${id} to ${newStatus}`);
+        const { error } = await supabase.from('products').update({ stock_status: newStatus }).eq('id', id);
+
         if (error) {
-            showToast('Failed to update stock', 'error');
+            console.error('Stock update error:', error);
+            showToast(`Failed to update stock: ${error.message}`, 'error');
+            // Revert by fetching fresh data
+            fetchProducts();
         } else {
             showToast('Stock status updated!');
-            fetchProducts();
         }
     }
 
@@ -197,68 +258,77 @@ export default function AdminProductsPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
-                            {products.map((p) => (
-                                <tr key={p.id} className="hover:bg-white/5 transition-colors">
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
-                                                {p.image_url && p.image_url.startsWith('http') ? (
-                                                    <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                                    </svg>
-                                                )}
+                            <AnimatePresence>
+                                {products.map((p, index) => (
+                                    <motion.tr
+                                        key={p.id}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        transition={{ delay: index * 0.05 }}
+                                        className="hover:bg-white/5 transition-colors"
+                                    >
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
+                                                    {p.image_url && p.image_url.startsWith('http') ? (
+                                                        <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                                        </svg>
+                                                    )}
+                                                </div>
+                                                <span className="text-white font-medium text-xs line-clamp-2 max-w-[200px]">{p.name}</span>
                                             </div>
-                                            <span className="text-white font-medium text-xs line-clamp-2 max-w-[200px]">{p.name}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3 text-gray-300">{p.brand}</td>
-                                    <td className="px-4 py-3 text-gray-300">{p.screen_size}</td>
-                                    <td className="px-4 py-3">
-                                        <input
-                                            type="number"
-                                            defaultValue={p.price}
-                                            className="bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-xs w-24 focus:outline-none focus:border-cyan-500/50"
-                                            onBlur={(e) => {
-                                                const val = Number(e.target.value);
-                                                if (val !== p.price && val > 0) quickPriceUpdate(p.id, val);
-                                            }}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    (e.target as HTMLInputElement).blur();
-                                                }
-                                            }}
-                                        />
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <select
-                                            value={p.stock_status}
-                                            onChange={(e) => quickStockUpdate(p.id, e.target.value)}
-                                            className={`text-xs rounded-full px-2 py-1 border-0 focus:outline-none cursor-pointer ${STOCK_OPTIONS.find(s => s.value === p.stock_status)?.color || ''
-                                                } bg-opacity-20`}
-                                        >
-                                            {STOCK_OPTIONS.map(s => (
-                                                <option key={s.value} value={s.value} className="bg-[#1e2a4a] text-white">{s.label}</option>
-                                            ))}
-                                        </select>
-                                    </td>
-                                    <td className="px-4 py-3 text-right">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <button onClick={() => openEdit(p)} className="text-gray-400 hover:text-cyan-400 transition-colors p-1">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                </svg>
-                                            </button>
-                                            <button onClick={() => setDeleteId(p.id)} className="text-gray-400 hover:text-red-400 transition-colors p-1">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                        </td>
+                                        <td className="px-4 py-3 text-gray-300">{p.brand}</td>
+                                        <td className="px-4 py-3 text-gray-300">{p.screen_size}</td>
+                                        <td className="px-4 py-3">
+                                            <input
+                                                type="number"
+                                                defaultValue={p.price}
+                                                className="bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-xs w-24 focus:outline-none focus:border-cyan-500/50"
+                                                onBlur={(e) => {
+                                                    const val = Number(e.target.value);
+                                                    if (val !== p.price && val > 0) quickPriceUpdate(p.id, val);
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        (e.target as HTMLInputElement).blur();
+                                                    }
+                                                }}
+                                            />
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <select
+                                                value={p.stock_status}
+                                                onChange={(e) => quickStockUpdate(p.id, e.target.value)}
+                                                className={`text-xs rounded-full px-2 py-1 border-0 focus:outline-none cursor-pointer ${STOCK_OPTIONS.find(s => s.value === p.stock_status)?.color || ''
+                                                    } bg-opacity-20`}
+                                            >
+                                                {STOCK_OPTIONS.map(s => (
+                                                    <option key={s.value} value={s.value} className="bg-[#1e2a4a] text-white">{s.label}</option>
+                                                ))}
+                                            </select>
+                                        </td>
+                                        <td className="px-4 py-3 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button onClick={() => openEdit(p)} className="text-gray-400 hover:text-cyan-400 transition-colors p-1">
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                    </svg>
+                                                </button>
+                                                <button onClick={() => setDeleteId(p.id)} className="text-gray-400 hover:text-red-400 transition-colors p-1">
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </motion.tr>
+                                ))}
+                            </AnimatePresence>
                         </tbody>
                     </table>
                 </div>

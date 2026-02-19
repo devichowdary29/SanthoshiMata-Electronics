@@ -2,100 +2,171 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { Order, Banner, Enquiry } from '@/lib/types';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Overview } from '@/components/admin/Overview';
+import { RecentSales } from '@/components/admin/RecentSales';
+import { LayoutDashboard, Users, CreditCard, Activity, ArrowUpRight, DollarSign, Package } from 'lucide-react';
 
 export default function AdminDashboard() {
-    const [stats, setStats] = useState({ products: 0, enquiries: 0, banners: 0 });
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [recentSales, setRecentSales] = useState<Order[]>([]);
+    const [stats, setStats] = useState({
+        totalRevenue: 0,
+        salesCount: 0,
+        activeProducts: 0,
+        activeBanners: 0
+    });
+    const [graphData, setGraphData] = useState<{ name: string; total: number }[]>([]);
 
     useEffect(() => {
-        async function fetchStats() {
-            const [productsRes, enquiriesRes, bannersRes] = await Promise.all([
-                supabase.from('products').select('id', { count: 'exact', head: true }),
-                supabase.from('enquiries').select('id', { count: 'exact', head: true }),
-                supabase.from('banners').select('id', { count: 'exact', head: true }).eq('active', true),
-            ]);
-            setStats({
-                products: productsRes.count || 0,
-                enquiries: enquiriesRes.count || 0,
-                banners: bannersRes.count || 0,
-            });
+        async function fetchData() {
+            // Fetch Orders
+            const { data: ordersData } = await supabase
+                .from('orders')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (ordersData) {
+                setOrders(ordersData);
+                setRecentSales(ordersData.slice(0, 5));
+
+                // Calculate Total Revenue (Confirmed orders only)
+                const revenue = ordersData
+                    .filter(o => o.order_status !== 'rejected')
+                    .reduce((acc, curr) => acc + curr.total_amount, 0);
+
+                // Calculate Graph Data (Monthly)
+                const monthlyData: Record<string, number> = {};
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+                ordersData.forEach(order => {
+                    if (order.order_status !== 'rejected') {
+                        const date = new Date(order.created_at);
+                        const month = months[date.getMonth()];
+                        monthlyData[month] = (monthlyData[month] || 0) + order.total_amount;
+                    }
+                });
+
+                // Fill in all months with data or 0
+                // For a cleaner look, let's just show the months present or last 6 months? 
+                // Let's show all months sorted
+                const chartData = months.map(m => ({ name: m, total: monthlyData[m] || 0 }));
+                setGraphData(chartData);
+
+                setStats(prev => ({
+                    ...prev,
+                    totalRevenue: revenue,
+                    salesCount: ordersData.length
+                }));
+            }
+
+            // Fetch Products Count
+            const { count: productsCount } = await supabase
+                .from('products')
+                .select('*', { count: 'exact', head: true });
+
+            // Fetch Active Banners
+            const { count: bannersCount } = await supabase
+                .from('banners')
+                .select('*', { count: 'exact', head: true })
+                .eq('active', true);
+
+            setStats(prev => ({
+                ...prev,
+                activeProducts: productsCount || 0,
+                activeBanners: bannersCount || 0
+            }));
         }
-        fetchStats();
+
+        fetchData();
     }, []);
 
-    const cards = [
-        {
-            label: 'Total Products',
-            value: stats.products,
-            icon: (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-            ),
-            color: 'from-cyan-500/20 to-blue-600/20 border-cyan-500/20',
-            textColor: 'text-cyan-400',
-        },
-        {
-            label: 'Customer Enquiries',
-            value: stats.enquiries,
-            icon: (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                </svg>
-            ),
-            color: 'from-emerald-500/20 to-green-600/20 border-emerald-500/20',
-            textColor: 'text-emerald-400',
-        },
-        {
-            label: 'Active Banners',
-            value: stats.banners,
-            icon: (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-            ),
-            color: 'from-amber-500/20 to-orange-600/20 border-amber-500/20',
-            textColor: 'text-amber-400',
-        },
-    ];
-
     return (
-        <div>
-            <h1 className="text-2xl font-bold text-white mb-6">Dashboard</h1>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                {cards.map((card) => (
-                    <div
-                        key={card.label}
-                        className={`bg-gradient-to-br ${card.color} rounded-xl border p-6`}
-                    >
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-gray-400 text-sm">{card.label}</p>
-                                <p className={`text-3xl font-bold ${card.textColor} mt-1`}>{card.value}</p>
-                            </div>
-                            <div className={`${card.textColor} opacity-50`}>{card.icon}</div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            <div className="mt-10 bg-[#1e2a4a]/40 rounded-xl border border-white/10 p-6">
-                <h2 className="text-lg font-semibold text-white mb-3">Quick Actions</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <a href="/admin/products" className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg p-4 text-center transition-all">
-                        <p className="text-white font-medium text-sm">Manage Products</p>
-                        <p className="text-gray-500 text-xs mt-1">Add, edit, or remove TVs</p>
-                    </a>
-                    <a href="/admin/banners" className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg p-4 text-center transition-all">
-                        <p className="text-white font-medium text-sm">Manage Banners</p>
-                        <p className="text-gray-500 text-xs mt-1">Upload offer banners</p>
-                    </a>
-                    <a href="/admin/enquiries" className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg p-4 text-center transition-all">
-                        <p className="text-white font-medium text-sm">View Enquiries</p>
-                        <p className="text-gray-500 text-xs mt-1">Customer messages</p>
-                    </a>
+        <div className="flex-1 space-y-4 p-8 pt-6 max-w-7xl mx-auto">
+            <div className="flex items-center justify-between space-y-2">
+                <h2 className="text-3xl font-bold tracking-tight text-white">Dashboard</h2>
+                <div className="flex items-center space-x-2">
+                    {/* Placeholder for potential date range picker or download button */}
+                    {/* <Button>Download</Button> */}
                 </div>
             </div>
+
+            <Tabs defaultValue="overview" className="space-y-4">
+                <TabsList className="bg-white/5 border border-white/10">
+                    <TabsTrigger value="overview" className="data-[state=active]:bg-cyan-500 data-[state=active]:text-white">Overview</TabsTrigger>
+                    <TabsTrigger value="analytics" disabled className="text-gray-500">Analytics</TabsTrigger>
+                    <TabsTrigger value="reports" disabled className="text-gray-500">Reports</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="overview" className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        <Card className="bg-white/5 border-white/10 text-white">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                                <DollarSign className="h-4 w-4 text-cyan-400" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">₹{stats.totalRevenue.toLocaleString('en-IN')}</div>
+                                <p className="text-xs text-gray-400">+20.1% from last month</p>
+                            </CardContent>
+                        </Card>
+                        <Card className="bg-white/5 border-white/10 text-white">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Sales</CardTitle>
+                                <CreditCard className="h-4 w-4 text-emerald-400" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">+{stats.salesCount}</div>
+                                <p className="text-xs text-gray-400">+180.1% from last month</p>
+                            </CardContent>
+                        </Card>
+                        <Card className="bg-white/5 border-white/10 text-white">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Active Products</CardTitle>
+                                <Package className="h-4 w-4 text-amber-400" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{stats.activeProducts}</div>
+                                <p className="text-xs text-gray-400">+12 since last week</p>
+                            </CardContent>
+                        </Card>
+                        <Card className="bg-white/5 border-white/10 text-white">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Active Banners</CardTitle>
+                                <Activity className="h-4 w-4 text-rose-400" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{stats.activeBanners}</div>
+                                <p className="text-xs text-gray-400">+2 active now</p>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                        <Card className="col-span-4 bg-white/5 border-white/10 text-white">
+                            <CardHeader>
+                                <CardTitle>Overview</CardTitle>
+                            </CardHeader>
+                            <CardContent className="pl-2">
+                                <Overview data={graphData} />
+                            </CardContent>
+                        </Card>
+                        <Card className="col-span-3 bg-white/5 border-white/10 text-white">
+                            <CardHeader>
+                                <CardTitle>Recent Sales</CardTitle>
+                                <CardDescription className="text-gray-400">
+                                    You made {stats.salesCount} sales this month.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <RecentSales orders={recentSales} />
+                            </CardContent>
+                        </Card>
+                    </div>
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }
